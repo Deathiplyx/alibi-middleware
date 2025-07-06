@@ -115,7 +115,7 @@ class AlibiGame:
         title_frame.grid(row=0, column=0, sticky="ew", pady=(0, 30))
         title_frame.grid_columnconfigure(0, weight=1)
         
-        title_label = tk.Label(title_frame, text="🎮 ALIBI", 
+        title_label = tk.Label(title_frame, text="ALIBI", 
                               font=("Segoe UI", 36, "bold"), 
                               bg=self.colors['bg_medium'], 
                               fg=self.colors['accent'])
@@ -258,21 +258,14 @@ class AlibiGame:
                               font=("Segoe UI", 18, "bold"), 
                               bg=self.colors['bg_medium'], 
                               fg=self.colors['accent'])
-        title_label.grid(row=0, column=0, columnspan=2, sticky="w", padx=10, pady=5)
+        title_label.grid(row=0, column=0, sticky="w", padx=10, pady=5)
         
         # Total timer
         self.total_timer_label = tk.Label(header_frame, text="⏰ Total: 15:00", 
                                          font=("Segoe UI", 14, "bold"), 
                                          bg=self.colors['bg_medium'], 
                                          fg=self.colors['success'])
-        self.total_timer_label.grid(row=0, column=2, padx=10, pady=5)
-        
-        # Response timer
-        self.response_timer_label = tk.Label(header_frame, text="⚡ Response: 60s", 
-                                            font=("Segoe UI", 14), 
-                                            bg=self.colors['bg_medium'], 
-                                            fg=self.colors['warning'])
-        self.response_timer_label.grid(row=0, column=3, padx=10, pady=5)
+        self.total_timer_label.grid(row=0, column=1, padx=10, pady=5)
         
         # Content area
         content_frame = tk.Frame(main_frame, bg=self.colors['bg_medium'])
@@ -322,19 +315,28 @@ class AlibiGame:
         question_frame = tk.Frame(content_frame, bg=self.colors['bg_light'], relief="flat", bd=1)
         question_frame.grid(row=1, column=0, sticky="ew", pady=10)
         question_frame.grid_columnconfigure(0, weight=1)
+        question_frame.grid_columnconfigure(1, weight=0)
         
+        # Question title and response timer in same row
         question_title = tk.Label(question_frame, text="❓ DETECTIVE'S QUESTION", 
                                  font=("Segoe UI", 12, "bold"), 
                                  bg=self.colors['bg_light'], 
                                  fg=self.colors['accent'])
         question_title.grid(row=0, column=0, sticky="w", padx=10, pady=5)
         
+        # Response timer next to question title
+        self.response_timer_label = tk.Label(question_frame, text="⚡ Response: 60s", 
+                                            font=("Segoe UI", 12, "bold"), 
+                                            bg=self.colors['bg_light'], 
+                                            fg=self.colors['warning'])
+        self.response_timer_label.grid(row=0, column=1, sticky="e", padx=10, pady=5)
+        
         self.question_label = tk.Label(question_frame, text=self.current_question, 
                                       font=("Segoe UI", 11), 
                                       bg=self.colors['bg_light'], 
                                       fg=self.colors['text_light'],
                                       justify="left", wraplength=800)
-        self.question_label.grid(row=1, column=0, sticky="w", padx=20, pady=10)
+        self.question_label.grid(row=1, column=0, columnspan=2, sticky="w", padx=20, pady=10)
         
         # Answer section
         answer_frame = tk.Frame(content_frame, bg=self.colors['bg_light'], relief="flat", bd=1)
@@ -363,12 +365,18 @@ class AlibiGame:
         
         # Only show waiting message for first question
         if self.is_first_question:
-            self.response_timer_label.config(text="⚡ Response: Waiting for first answer...")
+            self.response_timer_label.config(text="⚡ Response: Waiting for first answer...", fg=self.colors['text_gray'])
 
     def start_response_timer(self):
+        # Cancel any existing timer
+        if hasattr(self, '_response_timer_id'):
+            self.master.after_cancel(self._response_timer_id)
+        
         if self.response_timer_running:
             return
+            
         self.response_timer_running = True
+        self.response_time_left = 60
         
         def update_response_timer():
             if self.interrogation_over or not self.response_timer_running:
@@ -378,7 +386,7 @@ class AlibiGame:
                 color = self.colors['success'] if self.response_time_left > 30 else self.colors['warning'] if self.response_time_left > 10 else self.colors['danger']
                 self.response_timer_label.config(text=f"⚡ Response: {self.response_time_left}s", fg=color)
                 self.response_time_left -= 1
-                self.master.after(1000, update_response_timer)
+                self._response_timer_id = self.master.after(1000, update_response_timer)
             else:
                 self.response_timer_running = False
                 self.submit_answer(auto_submit=True)
@@ -386,8 +394,13 @@ class AlibiGame:
         update_response_timer()
 
     def start_total_timer(self):
+        # Cancel any existing timer
+        if hasattr(self, '_total_timer_id'):
+            self.master.after_cancel(self._total_timer_id)
+            
         if self.timer_running:
             return
+            
         self.timer_running = True
         
         def update_total_timer():
@@ -400,7 +413,7 @@ class AlibiGame:
                 color = self.colors['success'] if self.total_time_left > 300 else self.colors['warning'] if self.total_time_left > 60 else self.colors['danger']
                 self.total_timer_label.config(text=f"⏰ Total: {minutes:02d}:{seconds:02d}", fg=color)
                 self.total_time_left -= 1
-                self.master.after(1000, update_total_timer)
+                self._total_timer_id = self.master.after(1000, update_total_timer)
             else:
                 self.timer_running = False
                 self.end_interrogation(player_won=True)
@@ -463,12 +476,10 @@ class AlibiGame:
                 self.context.append(self.current_question)
                 self.build_interrogation_screen()
                 
-                # Start timers for the next question (only if not already running)
+                # Start timers for the next question
                 if not self.timer_running:
                     self.start_total_timer()
-                if not self.response_timer_running:
-                    self.response_time_left = 60
-                    self.start_response_timer()
+                self.start_response_timer()  # Always restart response timer for new question
             else:
                 messagebox.showerror("Error", "Failed to get AI response")
                 
@@ -562,4 +573,4 @@ class AlibiGame:
 
 root = tk.Tk()
 game = AlibiGame(root)
-root.mainloop()
+root.mainloop() 
