@@ -126,12 +126,8 @@ class AlibiGame:
         submit_btn = tk.Button(self.master, text="Submit Answer", command=self.submit_answer)
         submit_btn.pack(pady=10)
 
-        # Only start timers if this is NOT the first question
-        if not self.is_first_question:
-            self.response_time_left = 60
-            self.start_response_timer()
-            self.start_total_timer()
-        else:
+        # Only show waiting message for first question
+        if self.is_first_question:
             self.response_timer_label.config(text="Response Time: Waiting for first answer...")
 
     def start_response_timer(self):
@@ -229,6 +225,13 @@ class AlibiGame:
                 self.current_question = ai_response
                 self.context.append(self.current_question)
                 self.build_interrogation_screen()
+                
+                # Start timers for the next question (only if not already running)
+                if not self.timer_running:
+                    self.start_total_timer()
+                if not self.response_timer_running:
+                    self.response_time_left = 60
+                    self.start_response_timer()
             else:
                 messagebox.showerror("Error", "Failed to get AI response")
                 
