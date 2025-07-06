@@ -260,12 +260,12 @@ class AlibiGame:
                               fg=self.colors['accent'])
         title_label.grid(row=0, column=0, sticky="w", padx=10, pady=5)
         
-        # Total timer
-        self.total_timer_label = tk.Label(header_frame, text="⏰ Total: 15:00", 
-                                         font=("Segoe UI", 14, "bold"), 
-                                         bg=self.colors['bg_medium'], 
-                                         fg=self.colors['success'])
-        self.total_timer_label.grid(row=0, column=1, padx=10, pady=5)
+        # Remove total timer from header_frame
+        # self.total_timer_label = tk.Label(header_frame, text="⏰ Total: 15:00", 
+        #                                  font=("Segoe UI", 14, "bold"), 
+        #                                  bg=self.colors['bg_medium'], 
+        #                                  fg=self.colors['success'])
+        # self.total_timer_label.grid(row=0, column=1, padx=10, pady=5)
         
         # Content area
         content_frame = tk.Frame(main_frame, bg=self.colors['bg_medium'])
@@ -355,12 +355,19 @@ class AlibiGame:
                                     relief="flat", bd=5)
         self.answer_entry.grid(row=1, column=0, sticky="ew", padx=20, pady=10)
         
-        # Add response timer label below answer_entry
-        self.response_timer_label = tk.Label(answer_frame, text="⚡ Response: 60s", 
+        # Add timers in a horizontal row below answer_entry
+        timers_frame = tk.Frame(answer_frame, bg=self.colors['bg_light'])
+        timers_frame.grid(row=2, column=0, sticky="w", padx=10, pady=5)
+        self.response_timer_label = tk.Label(timers_frame, text="⚡ Response: 60s", 
                                             font=("Segoe UI", 12, "bold"), 
                                             bg=self.colors['bg_light'], 
                                             fg=self.colors['warning'])
-        self.response_timer_label.grid(row=2, column=0, sticky="w", padx=10, pady=5)
+        self.response_timer_label.pack(side="left", padx=(0, 20))
+        self.total_timer_label = tk.Label(timers_frame, text="⏰ Total: 15:00", 
+                                         font=("Segoe UI", 12, "bold"), 
+                                         bg=self.colors['bg_light'], 
+                                         fg=self.colors['success'])
+        self.total_timer_label.pack(side="left")
         
         # Submit button
         submit_btn = ModernButton(answer_frame, text="🚀 SUBMIT ANSWER", 
