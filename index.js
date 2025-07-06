@@ -142,26 +142,80 @@ function generateRandomTime() {
     return `${finalHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
 }
 
-// Generate minimal initial evidence - AI will create most evidence dynamically
+// Generate evidence based on difficulty
 function generateEvidence(scenario, playerName, difficulty) {
-    // Just provide a few basic pieces of evidence to start with
-    // The AI will create most evidence as the interrogation progresses
-    
-    const baseEvidence = [
-        `Initial investigation shows suspicious activity at ${scenario.location} at ${scenario.time}`,
-        `Police received reports of the ${scenario.crime} at ${scenario.location}`,
-        `Forensic teams are currently processing the crime scene`
+    // Easy: Only weak, circumstantial, or indirect evidence
+    const easyEvidence = [
+        `A car similar to one registered to ${playerName} was seen in the general area that day`,
+        `Someone thought they saw a person matching your description a few blocks away from ${scenario.location}`,
+        `You were reportedly in the city on the day of the incident`,
+        `A neighbor mentioned seeing you earlier that week, but couldn't recall the exact day`,
+        `A receipt shows you made a purchase at a store in the same city earlier that day`,
+        `A social media post places you somewhere in town, but not at the scene`,
+        `A friend said you mentioned being near ${scenario.location} recently, but wasn't sure when`,
+        `A car matching yours was seen driving past a nearby intersection`,
+        `A vague tip suggested you might have been in the area, but nothing confirmed`,
+        `A distant security camera caught a blurry figure that could possibly be you, but it's unclear`
     ];
-    
-    // Add one difficulty-appropriate piece of evidence
-    const difficultyEvidence = {
-        Easy: [`${playerName} was seen in the area around the time of the crime`],
-        Medium: [`${playerName}'s phone records place them near ${scenario.location} at ${scenario.time}`],
-        Hard: [`Multiple witnesses have identified ${playerName} as being involved in the crime`],
-        Expert: [`Forensic evidence directly links ${playerName} to the crime scene and method used`]
-    };
-    
-    return [...baseEvidence, ...difficultyEvidence[difficulty]];
+
+    // Normal: Moderate evidence, but not direct or overwhelming
+    const normalEvidence = [
+        `An eyewitness reported seeing someone matching your description near ${scenario.location} around the time of the incident`,
+        `A receipt shows you made a purchase at a store close to ${scenario.location} shortly before the incident`,
+        `A single security camera caught a person resembling you walking near ${scenario.location}`,
+        `A neighbor saw your car parked a few blocks from ${scenario.location}`,
+        `A friend said you mentioned being in the area that day`,
+        `A bus ticket places you in the neighborhood earlier that day`,
+        `A store clerk remembers seeing you, but isn't certain of the time`,
+        `A partial license plate match was reported near the scene`,
+        `A witness saw someone with your build and hair color near the scene`,
+        `A phone ping places you somewhere in the neighborhood, but not at the scene`
+    ];
+
+    // Hard: Strong evidence, but not completely irrefutable
+    const hardEvidence = [
+        `Two witnesses independently reported seeing you near ${scenario.location} at the time of the incident`,
+        `A security camera caught you walking within a block of ${scenario.location} at the time of the incident`,
+        `Your phone pinged a tower very close to ${scenario.location} at the time of the incident`,
+        `A partial fingerprint match was found on an object near the scene`,
+        `A neighbor saw you leaving the area shortly after the incident`,
+        `A store receipt shows you made a purchase at a shop next to ${scenario.location} minutes before the incident`,
+        `A rideshare record shows you were dropped off near ${scenario.location}`,
+        `A witness saw you talking to someone near the scene`,
+        `A camera caught your car driving past ${scenario.location} at the time of the incident`,
+        `A partial DNA match was found on an item left near the scene`
+    ];
+
+    // Expert: Nearly irrefutable evidence
+    const expertEvidence = [
+        `A security camera clearly shows you at ${scenario.location} at the exact time of the incident`,
+        `Your fingerprints were found on the door at ${scenario.location}`,
+        `Your DNA was found at the scene`,
+        `Multiple witnesses identified you as being at ${scenario.location} at the time of the incident`,
+        `Your phone GPS data places you at ${scenario.location} at the exact time`,
+        `A digital record shows you accessed a device at ${scenario.location}`,
+        `A bank transaction places you at the scene at the exact time`,
+        `A police officer saw you at ${scenario.location} during the incident`,
+        `A direct message from your account references the incident at ${scenario.location}`,
+        `A video shows you entering or leaving ${scenario.location} at the time of the incident`
+    ];
+
+    let evidencePool = [];
+    if (difficulty === 'Easy') evidencePool = easyEvidence;
+    else if (difficulty === 'Medium' || difficulty === 'Normal') evidencePool = normalEvidence;
+    else if (difficulty === 'Hard') evidencePool = hardEvidence;
+    else if (difficulty === 'Expert') evidencePool = expertEvidence;
+    else evidencePool = normalEvidence;
+
+    // Select 3-4 pieces of evidence for Easy/Normal, 4-5 for Hard, 5+ for Expert
+    let count = 3;
+    if (difficulty === 'Hard') count = 4 + Math.floor(Math.random() * 2);
+    if (difficulty === 'Expert') count = 5 + Math.floor(Math.random() * 2);
+    if (difficulty === 'Easy' || difficulty === 'Medium' || difficulty === 'Normal') count = 3 + Math.floor(Math.random() * 2);
+
+    // Shuffle and select
+    const shuffled = evidencePool.sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
 }
 
 // Generate dynamic scenario with logical crime-location pairs
