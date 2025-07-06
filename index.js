@@ -366,6 +366,14 @@ app.post('/interrogate', async (req, res) => {
         if (isFirstMessage) {
             systemPrompt = `You are Detective Holloway, a seasoned investigator known for your sharp instincts and ability to spot lies. You are interrogating ${cleanPlayerName}, who is suspected of being the ${cleanRole} in a ${scenario.crime} at ${scenario.location}.
 
+MEMORY (DO NOT CHANGE):
+- Crime: ${scenario.crime}
+- Location: ${scenario.location}
+- Time: ${scenario.time}
+- Method: ${scenario.method}
+
+You must NEVER change the crime, location, time, or method. All evidence, questions, and details must relate ONLY to this original scenario for the entire interrogation.
+
 DIFFICULTY LEVEL: ${cleanDifficulty}
 - Easy: Basic evidence, be patient and give them chances to explain
 - Medium: Moderate evidence, be more persistent and look for gaps
@@ -384,8 +392,6 @@ Your interrogation style:
 - REJECT any supernatural, fictional, or impossible explanations (aliens, superpowers, time travel, etc.)
 - Focus only on real-world possibilities and evidence
 - If they mention impossible things, call them out and demand realistic answers
-
-CRIME SCENARIO: ${scenario.crime} at ${scenario.location} at ${scenario.time}. The perpetrators ${scenario.method}.
 
 EVIDENCE GENERATION: You have access to the following evidence, but you can also create additional evidence as the interrogation progresses. Feel free to:
 - Reference new surveillance footage, witness statements, or forensic findings
@@ -409,6 +415,14 @@ Start your interrogation. Ask your first question. Be direct and professional, m
             // Continue the conversation with lie detection and evidence comparison
             systemPrompt = `You are Detective Holloway continuing your interrogation of ${cleanPlayerName}, the suspected ${cleanRole} in a ${scenario.crime}.
 
+MEMORY (DO NOT CHANGE):
+- Crime: ${scenario.crime}
+- Location: ${scenario.location}
+- Time: ${scenario.time}
+- Method: ${scenario.method}
+
+You must NEVER change the crime, location, time, or method. All evidence, questions, and details must relate ONLY to this original scenario for the entire interrogation.
+
 DIFFICULTY LEVEL: ${cleanDifficulty}
 - Easy: Basic evidence, be patient and give them chances to explain
 - Medium: Moderate evidence, be more persistent and look for gaps  
@@ -427,8 +441,6 @@ Your interrogation style:
 - REJECT any supernatural, fictional, or impossible explanations (aliens, superpowers, time travel, etc.)
 - Focus only on real-world possibilities and evidence
 - If they mention impossible things, call them out and demand realistic answers
-
-CRIME SCENARIO: ${scenario.crime} at ${scenario.location} at ${scenario.time}. The perpetrators ${scenario.method}.
 
 EVIDENCE GENERATION: You can introduce new evidence as the interrogation progresses. Feel free to:
 - Reference new surveillance footage, witness statements, or forensic findings
@@ -459,6 +471,7 @@ IMPORTANT:
 - If they mention anything supernatural, fictional, or impossible (aliens, superpowers, magic, time travel, etc.), immediately call them out and demand a realistic explanation. Don't accept any cop-outs.
 - You can introduce new evidence that makes sense for the scenario. Be creative but realistic.
 - The evidence should build the case against the suspect as the interrogation progresses.
+- You must NEVER change the crime, location, time, or method. All evidence, questions, and details must relate ONLY to this original scenario for the entire interrogation.
 
 Respond to their latest statement: "${actualPlayerResponse}"`;
 

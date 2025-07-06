@@ -324,12 +324,12 @@ class AlibiGame:
                                  fg=self.colors['accent'])
         question_title.grid(row=0, column=0, sticky="w", padx=10, pady=5)
         
-        # Response timer next to question title
-        self.response_timer_label = tk.Label(question_frame, text="⚡ Response: 60s", 
-                                            font=("Segoe UI", 12, "bold"), 
-                                            bg=self.colors['bg_light'], 
-                                            fg=self.colors['warning'])
-        self.response_timer_label.grid(row=0, column=1, sticky="e", padx=10, pady=5)
+        # Remove response timer from question_frame
+        # self.response_timer_label = tk.Label(question_frame, text="⚡ Response: 60s", 
+        #                                    font=("Segoe UI", 12, "bold"), 
+        #                                    bg=self.colors['bg_light'], 
+        #                                    fg=self.colors['warning'])
+        # self.response_timer_label.grid(row=0, column=1, sticky="e", padx=10, pady=5)
         
         self.question_label = tk.Label(question_frame, text=self.current_question, 
                                       font=("Segoe UI", 11), 
@@ -355,13 +355,20 @@ class AlibiGame:
                                     relief="flat", bd=5)
         self.answer_entry.grid(row=1, column=0, sticky="ew", padx=20, pady=10)
         
+        # Add response timer label below answer_entry
+        self.response_timer_label = tk.Label(answer_frame, text="⚡ Response: 60s", 
+                                            font=("Segoe UI", 12, "bold"), 
+                                            bg=self.colors['bg_light'], 
+                                            fg=self.colors['warning'])
+        self.response_timer_label.grid(row=2, column=0, sticky="w", padx=10, pady=5)
+        
         # Submit button
         submit_btn = ModernButton(answer_frame, text="🚀 SUBMIT ANSWER", 
                                  command=self.submit_answer,
                                  bg=self.colors['accent'], fg=self.colors['text_light'],
                                  font=("Segoe UI", 12, "bold"),
                                  width=20, height=2)
-        submit_btn.grid(row=2, column=0, pady=15)
+        submit_btn.grid(row=3, column=0, pady=15)
         
         # Only show waiting message for first question
         if self.is_first_question:
