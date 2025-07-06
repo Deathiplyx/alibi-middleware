@@ -482,21 +482,11 @@ class AlibiGame:
                 logging.debug(f"AI response: {ai_response}")
                 
                 # Check if AI has caught the player in a lie
-                catch_phrases = [
-                    "caught you", "lying", "contradiction", "guilty", "confess", 
-                    "admit", "proven", "confirmed", "definitely", "clearly",
-                    "definitive", "conclusive", "irrefutable", "undeniable", 
-                    "caught red-handed", "beyond doubt", "proven guilty",
-                    "you're under arrest", "case closed", "evidence is clear",
-                    "no more lies", "we have you", "it's over"
-                ]
-                
-                ai_response_lower = ai_response.lower()
-                for phrase in catch_phrases:
-                    if phrase in ai_response_lower:
-                        logging.debug(f"AI caught player with phrase: {phrase}")
-                        self.end_interrogation(ai_caught=True)
-                        return
+                ai_response_lower = ai_response.lower().strip()
+                if ai_response_lower.startswith("i caught you in a lie because"):
+                    logging.debug("AI caught player with explicit phrase: I caught you in a lie because...")
+                    self.end_interrogation(ai_caught=True)
+                    return
                 
                 # If not caught, continue with normal flow
                 self.current_question = ai_response
