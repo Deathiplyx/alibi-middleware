@@ -423,6 +423,9 @@ class AlibiGame:
     def submit_answer(self, auto_submit=False):
         answer = self.answer_entry.get() if not auto_submit else "[No Answer Submitted]"
         
+        # Clear the input field
+        self.answer_entry.delete(0, tk.END)
+        
         # Stop response timer
         self.response_timer_running = False
         
@@ -439,8 +442,12 @@ class AlibiGame:
         # Mark that we're no longer on the first question
         self.is_first_question = False
 
+        # Show loading message
+        self.question_label.config(text="🔄 Getting AI response...", fg=self.colors['warning'])
+
         # Get AI response
         try:
+            logging.debug(f"Sending answer: {answer}")
             response = requests.post(MIDDLEWARE_URL, json={
                 "playerName": self.name,
                 "role": self.role,
@@ -449,11 +456,14 @@ class AlibiGame:
                 "context": self.context,
                 "playerResponse": answer,
                 "startInterrogation": False
-            })
+            }, timeout=30)  # Add timeout
+            
+            logging.debug(f"Response status: {response.status_code}")
             
             if response.status_code == 200:
                 data = response.json()
                 ai_response = data.get("response", "")
+                logging.debug(f"AI response: {ai_response}")
                 
                 # Check if AI has caught the player in a lie
                 catch_phrases = [
@@ -468,6 +478,7 @@ class AlibiGame:
                 ai_response_lower = ai_response.lower()
                 for phrase in catch_phrases:
                     if phrase in ai_response_lower:
+                        logging.debug(f"AI caught player with phrase: {phrase}")
                         self.end_interrogation(ai_caught=True)
                         return
                 
@@ -481,11 +492,18 @@ class AlibiGame:
                     self.start_total_timer()
                 self.start_response_timer()  # Always restart response timer for new question
             else:
-                messagebox.showerror("Error", "Failed to get AI response")
+                logging.error(f"HTTP error: {response.status_code}")
+                messagebox.showerror("Error", f"Failed to get AI response (HTTP {response.status_code})")
                 
+        except requests.exceptions.Timeout:
+            logging.error("Request timeout")
+            messagebox.showerror("Error", "Request timed out. Please try again.")
         except requests.exceptions.RequestException as e:
-            logging.error("Failed to get AI response")
-            messagebox.showerror("Error", str(e))
+            logging.error(f"Request failed: {e}")
+            messagebox.showerror("Error", f"Failed to get AI response: {str(e)}")
+        except Exception as e:
+            logging.error(f"Unexpected error: {e}")
+            messagebox.showerror("Error", f"Unexpected error: {str(e)}")
 
     def end_interrogation(self, player_won=False, ai_caught=False):
         self.interrogation_over = True
