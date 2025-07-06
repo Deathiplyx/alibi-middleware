@@ -429,15 +429,16 @@ class AlibiGame:
         # Stop response timer
         self.response_timer_running = False
         
-        # Add to conversation history
-        self.conversationHistory.append({
-            "role": "detective",
-            "content": self.current_question
-        })
-        self.conversationHistory.append({
-            "role": "player", 
-            "content": answer
-        })
+        # Add to conversation history in the correct format
+        if not auto_submit:  # Only add if it's a real answer, not auto-submit
+            self.conversationHistory.append({
+                "role": "detective",
+                "content": self.current_question
+            })
+            self.conversationHistory.append({
+                "role": "player", 
+                "content": answer
+            })
 
         # Mark that we're no longer on the first question
         self.is_first_question = False
@@ -447,8 +448,7 @@ class AlibiGame:
 
         # Get AI response
         try:
-            logging.debug(f"Sending answer: {answer}")
-            response = requests.post(MIDDLEWARE_URL, json={
+            payload = {
                 "playerName": self.name,
                 "role": self.role,
                 "difficulty": self.difficulty,
@@ -456,7 +456,9 @@ class AlibiGame:
                 "context": self.context,
                 "playerResponse": answer,
                 "startInterrogation": False
-            }, timeout=30)  # Add timeout
+            }
+            logging.debug(f"Sending payload: {payload}")
+            response = requests.post(MIDDLEWARE_URL, json=payload, timeout=30)
             
             logging.debug(f"Response status: {response.status_code}")
             
@@ -493,7 +495,22 @@ class AlibiGame:
                 self.start_response_timer()  # Always restart response timer for new question
             else:
                 logging.error(f"HTTP error: {response.status_code}")
-                messagebox.showerror("Error", f"Failed to get AI response (HTTP {response.status_code})")
+                try:
+                    error_data = response.json()
+                    error_message = error_data.get('error', 'Unknown error')
+                    logging.error(f"Error details: {error_data}")
+                    
+                    # If session not found, try to restart
+                    if "Session not found" in error_message:
+                        logging.info("Session lost, restarting interrogation...")
+                        self.conversationHistory = []
+                        self.context = []
+                        self.start_interrogation(first=True)
+                        return
+                    else:
+                        messagebox.showerror("Error", f"Failed to get AI response: {error_message}")
+                except:
+                    messagebox.showerror("Error", f"Failed to get AI response (HTTP {response.status_code})")
                 
         except requests.exceptions.Timeout:
             logging.error("Request timeout")

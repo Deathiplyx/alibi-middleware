@@ -16,13 +16,36 @@ const sessions = {};
 function cleanupSessions() {
     const now = Date.now();
     const sessionTimeout = 30 * 60 * 1000; // 30 minutes
+    let cleanedCount = 0;
     
     Object.keys(sessions).forEach(playerName => {
         if (now - sessions[playerName].timestamp > sessionTimeout) {
             delete sessions[playerName];
+            cleanedCount++;
             console.log(`🧹 Cleaned up expired session for ${playerName}`);
         }
     });
+    
+    if (cleanedCount > 0) {
+        console.log(`🧹 Cleaned up ${cleanedCount} expired sessions`);
+    }
+}
+
+// Session validation function
+function validateSession(session) {
+    if (!session || !session.scenario || !session.evidence) {
+        return false;
+    }
+    
+    // Check if session has required fields
+    const requiredFields = ['crime', 'location', 'time', 'method'];
+    for (const field of requiredFields) {
+        if (!session.scenario[field]) {
+            return false;
+        }
+    }
+    
+    return true;
 }
 
 // Run cleanup every 30 minutes
@@ -263,6 +286,7 @@ app.post('/interrogate', async (req, res) => {
                 scenario: scenario,
                 evidence: generatedEvidence,
                 history: [],
+                conversationHistory: [],
                 timestamp: Date.now()
             };
             
@@ -275,27 +299,68 @@ app.post('/interrogate', async (req, res) => {
             // Retrieve existing session
             const session = sessions[cleanPlayerName];
             if (!session) {
-                console.log(`❌ Session not found for ${cleanPlayerName}`);
-                return res.status(400).json({
-                    error: 'Session not found. Please start a new interrogation.',
-                    details: 'No active session found for this player'
+                console.log(`❌ Session not found for ${cleanPlayerName}, creating new session`);
+                // Auto-recover by creating a new session
+                scenario = generateScenario();
+                generatedEvidence = generateEvidence(scenario, cleanPlayerName, cleanDifficulty);
+                
+                sessions[cleanPlayerName] = {
+                    scenario: scenario,
+                    evidence: generatedEvidence,
+                    history: [],
+                    conversationHistory: [],
+                    timestamp: Date.now()
+                };
+                
+                console.log(`🔄 Auto-recovered session for ${cleanPlayerName}:`, {
+                    crime: scenario.crime,
+                    location: scenario.location,
+                    time: scenario.time
                 });
+            } else {
+                // Validate existing session
+                if (!validateSession(session)) {
+                    console.log(`⚠️ Invalid session for ${cleanPlayerName}, recreating`);
+                    delete sessions[cleanPlayerName];
+                    
+                    // Recreate session
+                    scenario = generateScenario();
+                    generatedEvidence = generateEvidence(scenario, cleanPlayerName, cleanDifficulty);
+                    
+                    sessions[cleanPlayerName] = {
+                        scenario: scenario,
+                        evidence: generatedEvidence,
+                        history: [],
+                        conversationHistory: [],
+                        timestamp: Date.now()
+                    };
+                    
+                    console.log(`🔄 Recreated invalid session for ${cleanPlayerName}:`, {
+                        crime: scenario.crime,
+                        location: scenario.location,
+                        time: scenario.time
+                    });
+                } else {
+                    scenario = session.scenario;
+                    generatedEvidence = session.evidence;
+                    
+                    // Update session history
+                    session.history.push({
+                        question: actualConversationHistory[actualConversationHistory.length - 1]?.content || 'Previous question',
+                        answer: actualPlayerResponse
+                    });
+                    
+                    // Update conversation history in session
+                    session.conversationHistory = actualConversationHistory;
+                    
+                    console.log(`🔄 Continuing session for ${cleanPlayerName}:`, {
+                        crime: scenario.crime,
+                        location: session.location,
+                        historyLength: session.history.length,
+                        conversationLength: actualConversationHistory.length
+                    });
+                }
             }
-            
-            scenario = session.scenario;
-            generatedEvidence = session.evidence;
-            
-            // Update session history
-            session.history.push({
-                question: actualConversationHistory[actualConversationHistory.length - 1]?.content || 'Previous question',
-                answer: actualPlayerResponse
-            });
-            
-            console.log(`🔄 Continuing session for ${cleanPlayerName}:`, {
-                crime: scenario.crime,
-                location: scenario.location,
-                historyLength: session.history.length
-            });
         }
 
         // Use provided evidence list or generated evidence
@@ -420,9 +485,24 @@ Respond to their latest statement: "${actualPlayerResponse}"`;
     } catch (error) {
         console.error('❌ Error in /interrogate endpoint:', error.response?.data || error.message);
         
+        // Provide more specific error messages
+        let errorMessage = 'Failed to get response from AI';
+        let errorDetails = error.response?.data || error.message;
+        
+        if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT') {
+            errorMessage = 'Connection timeout. Please try again.';
+        } else if (error.response?.status === 429) {
+            errorMessage = 'Rate limit exceeded. Please wait a moment.';
+        } else if (error.response?.status === 401) {
+            errorMessage = 'Authentication failed. Please check API key.';
+        } else if (error.response?.status === 400) {
+            errorMessage = 'Invalid request format.';
+        }
+        
         res.status(500).json({
-            error: 'Failed to get response from AI',
-            details: error.response?.data || error.message
+            error: errorMessage,
+            details: errorDetails,
+            timestamp: new Date().toISOString()
         });
     }
 });
@@ -443,13 +523,35 @@ app.get('/debug/sessions', (req, res) => {
         playerName,
         scenario: sessions[playerName].scenario,
         historyLength: sessions[playerName].history.length,
-        timestamp: new Date(sessions[playerName].timestamp).toISOString()
+        conversationLength: sessions[playerName].conversationHistory?.length || 0,
+        timestamp: new Date(sessions[playerName].timestamp).toISOString(),
+        isValid: validateSession(sessions[playerName])
     }));
     
     res.json({
         activeSessions: sessionInfo,
-        totalSessions: Object.keys(sessions).length
+        totalSessions: Object.keys(sessions).length,
+        serverTime: new Date().toISOString()
     });
+});
+
+// Debug endpoint to reset sessions (remove in production)
+app.post('/debug/reset-sessions', (req, res) => {
+    const { playerName } = req.body;
+    
+    if (playerName) {
+        if (sessions[playerName]) {
+            delete sessions[playerName];
+            res.json({ message: `Session for ${playerName} has been reset` });
+        } else {
+            res.status(404).json({ error: `No session found for ${playerName}` });
+        }
+    } else {
+        // Reset all sessions
+        const count = Object.keys(sessions).length;
+        Object.keys(sessions).forEach(key => delete sessions[key]);
+        res.json({ message: `All ${count} sessions have been reset` });
+    }
 });
 
 // Start server
