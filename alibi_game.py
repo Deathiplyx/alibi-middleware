@@ -81,8 +81,8 @@ class AlibiGame:
         self.conversationHistory = []
         self.context = []
         self.current_question = ""
-        self.response_time_left = 60
-        self.total_time_left = 15 * 60
+        self.response_time_left = 120  # 2 minutes per answer
+        self.total_time_left = 20 * 60  # 20 minutes to survive
         self.start_time = time.time()
         self.interrogation_over = False
         self.is_first_question = True
@@ -135,11 +135,11 @@ class AlibiGame:
         # Intro text with better formatting
         intro_text = (
             "You've been linked to a high-stakes robbery.\n\n"
-            "Your goal is to survive questioning for 15 minutes.\n\n"
+            "Your goal is to survive questioning for 20 minutes.\n\n"
             "⚠️  The system already knows more than you think.\n"
             "🎯  Your story must be sharp, clear, and consistent.\n"
             "🚨  Contradict yourself, and you'll be exposed.\n\n"
-            "⏰  You'll have 1 minute to answer each question.\n"
+            "⏰  You'll have 2 minutes to answer each question.\n"
             "🏆  Last the full interrogation, and you walk free."
         )
         
@@ -358,12 +358,12 @@ class AlibiGame:
         # Add timers in a horizontal row below answer_entry
         timers_frame = tk.Frame(answer_frame, bg=self.colors['bg_light'])
         timers_frame.grid(row=2, column=0, sticky="w", padx=10, pady=5)
-        self.response_timer_label = tk.Label(timers_frame, text="⚡ Response: 60s", 
+        self.response_timer_label = tk.Label(timers_frame, text="⚡ Response: 120s", 
                                             font=("Segoe UI", 12, "bold"), 
                                             bg=self.colors['bg_light'], 
                                             fg=self.colors['warning'])
         self.response_timer_label.pack(side="left", padx=(0, 20))
-        self.total_timer_label = tk.Label(timers_frame, text="⏰ Total: 15:00", 
+        self.total_timer_label = tk.Label(timers_frame, text="⏰ Total: 20:00", 
                                          font=("Segoe UI", 12, "bold"), 
                                          bg=self.colors['bg_light'], 
                                          fg=self.colors['success'])
@@ -390,7 +390,7 @@ class AlibiGame:
             return
             
         self.response_timer_running = True
-        self.response_time_left = 60
+        self.response_time_left = 120  # 2 minutes per answer
         
         def update_response_timer():
             if self.interrogation_over or not self.response_timer_running:
@@ -546,7 +546,7 @@ class AlibiGame:
             icon = "🚨"
         elif player_won:
             title = "✅ INTERROGATION SURVIVED!"
-            message = "Congratulations! You've survived the full 15-minute interrogation.\n\nYou walk free!"
+            message = "Congratulations! You've survived the full 20-minute interrogation.\n\nYou walk free!"
             color = self.colors['success']
             icon = "🏆"
         else:
@@ -597,8 +597,8 @@ class AlibiGame:
         self.conversationHistory = []
         self.context = []
         self.current_question = ""
-        self.response_time_left = 60
-        self.total_time_left = 15 * 60
+        self.response_time_left = 120  # 2 minutes per answer
+        self.total_time_left = 20 * 60  # 20 minutes to survive
         self.start_time = time.time()
         self.interrogation_over = False
         self.is_first_question = True
