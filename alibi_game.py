@@ -1,10 +1,11 @@
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox, simpledialog, ttk
 import requests
 import random
 import threading
 import time
 import logging
+from tkinter import font
 
 # Logging setup
 logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(message)s')
@@ -15,12 +16,63 @@ VALID_ROLES = [
     "Inside Man", "Mastermind", "Tech Specialist", "Demolitions Expert"
 ]
 
+class ModernButton(tk.Button):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.config(
+            relief="flat",
+            borderwidth=0,
+            font=("Segoe UI", 10, "bold"),
+            cursor="hand2"
+        )
+        self.bind("<Enter>", self.on_enter)
+        self.bind("<Leave>", self.on_leave)
+    
+    def on_enter(self, e):
+        self.config(bg="#4a90e2")
+    
+    def on_leave(self, e):
+        self.config(bg="#2c3e50")
+
 class AlibiGame:
     def __init__(self, master):
         self.master = master
-        self.master.title("🎮 Alibi: Interrogation Experience")
-        self.master.geometry("700x600")
-
+        self.master.title("🎮 ALIBI: The Interrogation Experience")
+        
+        # Get screen dimensions and set window size
+        screen_width = self.master.winfo_screenwidth()
+        screen_height = self.master.winfo_screenheight()
+        window_width = min(1200, screen_width - 100)
+        window_height = min(800, screen_height - 100)
+        
+        # Center the window
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        self.master.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        self.master.resizable(True, True)
+        
+        # Configure grid weights for responsive design
+        self.master.grid_rowconfigure(0, weight=1)
+        self.master.grid_columnconfigure(0, weight=1)
+        
+        # Set modern colors
+        self.colors = {
+            'bg_dark': '#1a1a2e',
+            'bg_medium': '#16213e',
+            'bg_light': '#0f3460',
+            'accent': '#e94560',
+            'text_light': '#ffffff',
+            'text_gray': '#b8b8b8',
+            'success': '#00d4aa',
+            'warning': '#ffa726',
+            'danger': '#ef5350',
+            'gradient_start': '#667eea',
+            'gradient_end': '#764ba2'
+        }
+        
+        self.master.configure(bg=self.colors['bg_dark'])
+        
+        # Game state
         self.name = ""
         self.difficulty = "Normal"
         self.role = random.choice(VALID_ROLES)
@@ -30,7 +82,7 @@ class AlibiGame:
         self.context = []
         self.current_question = ""
         self.response_time_left = 60
-        self.total_time_left = 15 * 60  # 15 minutes in seconds
+        self.total_time_left = 15 * 60
         self.start_time = time.time()
         self.interrogation_over = False
         self.is_first_question = True
@@ -39,31 +91,120 @@ class AlibiGame:
 
         self.build_intro_screen()
 
+    def create_gradient_frame(self, parent, **kwargs):
+        """Create a frame with gradient-like styling"""
+        frame = tk.Frame(parent, bg=self.colors['bg_medium'], relief="flat", bd=2, **kwargs)
+        return frame
+
+    def create_modern_label(self, parent, text, **kwargs):
+        """Create a modern styled label"""
+        return tk.Label(parent, text=text, bg=self.colors['bg_medium'], fg=self.colors['text_light'], 
+                       font=("Segoe UI", 10), **kwargs)
+
     def build_intro_screen(self):
         self.clear_frame()
+        
+        # Main container
+        main_frame = self.create_gradient_frame(self.master, padx=40, pady=40)
+        main_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        main_frame.grid_rowconfigure(1, weight=1)
+        main_frame.grid_columnconfigure(0, weight=1)
+        
+        # Title with gradient effect
+        title_frame = tk.Frame(main_frame, bg=self.colors['bg_medium'], height=100)
+        title_frame.grid(row=0, column=0, sticky="ew", pady=(0, 30))
+        title_frame.grid_columnconfigure(0, weight=1)
+        
+        title_label = tk.Label(title_frame, text="🎮 ALIBI", 
+                              font=("Segoe UI", 36, "bold"), 
+                              bg=self.colors['bg_medium'], 
+                              fg=self.colors['accent'])
+        title_label.grid(row=0, column=0, pady=10)
+        
+        subtitle_label = tk.Label(title_frame, text="The Interrogation Experience", 
+                                 font=("Segoe UI", 16), 
+                                 bg=self.colors['bg_medium'], 
+                                 fg=self.colors['text_gray'])
+        subtitle_label.grid(row=1, column=0, pady=5)
+        
+        # Content area
+        content_frame = tk.Frame(main_frame, bg=self.colors['bg_medium'])
+        content_frame.grid(row=1, column=0, sticky="nsew")
+        content_frame.grid_columnconfigure(0, weight=1)
+        
+        # Intro text with better formatting
         intro_text = (
-            "🎮 WELCOME TO ALIBI: The Interrogation Experience\n\n"
-            "You've been linked to a high-stakes robbery.\n"
+            "You've been linked to a high-stakes robbery.\n\n"
             "Your goal is to survive questioning for 15 minutes.\n\n"
-            "- The system already knows more than you think.\n"
-            "- Your story must be sharp, clear, and consistent.\n"
-            "- Contradict yourself, and you'll be exposed.\n\n"
-            "🕒 You'll have 1 minute to answer each question.\n"
-            "Last the full interrogation, and you walk free."
+            "⚠️  The system already knows more than you think.\n"
+            "🎯  Your story must be sharp, clear, and consistent.\n"
+            "🚨  Contradict yourself, and you'll be exposed.\n\n"
+            "⏰  You'll have 1 minute to answer each question.\n"
+            "🏆  Last the full interrogation, and you walk free."
         )
-        label = tk.Label(self.master, text=intro_text, justify="left", wraplength=650)
-        label.pack(pady=20)
-
-        start_button = tk.Button(self.master, text="Start Interrogation", command=self.get_player_info)
-        start_button.pack()
+        
+        intro_label = tk.Label(content_frame, text=intro_text, 
+                              font=("Segoe UI", 12), 
+                              bg=self.colors['bg_medium'], 
+                              fg=self.colors['text_light'],
+                              justify="left", wraplength=600)
+        intro_label.grid(row=0, column=0, pady=30)
+        
+        # Start button with modern styling
+        start_button = ModernButton(content_frame, text="🚀 START INTERROGATION", 
+                                   command=self.get_player_info,
+                                   bg=self.colors['accent'], fg=self.colors['text_light'],
+                                   font=("Segoe UI", 14, "bold"),
+                                   width=25, height=2)
+        start_button.grid(row=1, column=0, pady=30)
 
     def get_player_info(self):
-        self.name = simpledialog.askstring("Name", "Enter your name:")
-        difficulty_choice = simpledialog.askinteger("Difficulty", "Choose difficulty:\n1. Easy\n2. Normal\n3. Hard\n4. Expert", minvalue=1, maxvalue=4)
-        difficulties = {1: "Easy", 2: "Normal", 3: "Hard", 4: "Expert"}
-        self.difficulty = difficulties.get(difficulty_choice, "Normal")
-        self.role = random.choice(VALID_ROLES)
-        self.start_interrogation(first=True)
+        # Create a modern dialog
+        dialog = tk.Toplevel(self.master)
+        dialog.title("Setup Interrogation")
+        dialog.geometry("400x300")
+        dialog.configure(bg=self.colors['bg_dark'])
+        dialog.transient(self.master)
+        dialog.grab_set()
+        
+        # Center dialog
+        dialog.geometry("+%d+%d" % (self.master.winfo_rootx() + 50, self.master.winfo_rooty() + 50))
+        
+        # Name input
+        tk.Label(dialog, text="Enter your name:", font=("Segoe UI", 12), 
+                bg=self.colors['bg_dark'], fg=self.colors['text_light']).pack(pady=10)
+        
+        name_entry = tk.Entry(dialog, font=("Segoe UI", 12), width=30)
+        name_entry.pack(pady=5)
+        name_entry.focus()
+        
+        # Difficulty selection
+        tk.Label(dialog, text="Choose difficulty:", font=("Segoe UI", 12), 
+                bg=self.colors['bg_dark'], fg=self.colors['text_light']).pack(pady=10)
+        
+        difficulty_var = tk.StringVar(value="Normal")
+        difficulties = [("Easy", "Easy"), ("Normal", "Normal"), ("Hard", "Hard"), ("Expert", "Expert")]
+        
+        for text, value in difficulties:
+            tk.Radiobutton(dialog, text=text, variable=difficulty_var, value=value,
+                          font=("Segoe UI", 10), bg=self.colors['bg_dark'], 
+                          fg=self.colors['text_light'], selectcolor=self.colors['bg_medium']).pack()
+        
+        def on_submit():
+            self.name = name_entry.get() or "Player"
+            self.difficulty = difficulty_var.get()
+            self.role = random.choice(VALID_ROLES)
+            dialog.destroy()
+            self.start_interrogation(first=True)
+        
+        # Submit button
+        submit_btn = ModernButton(dialog, text="START", command=on_submit,
+                                 bg=self.colors['accent'], fg=self.colors['text_light'],
+                                 font=("Segoe UI", 12, "bold"))
+        submit_btn.pack(pady=20)
+        
+        # Enter key binding
+        name_entry.bind('<Return>', lambda e: on_submit())
 
     def start_interrogation(self, first=False, player_answer=""):
         payload = {
@@ -99,36 +240,130 @@ class AlibiGame:
 
     def build_interrogation_screen(self):
         self.clear_frame()
-
-        tk.Label(self.master, text="🚨 INTERROGATION INITIATED", font=("Helvetica", 14, "bold")).pack(pady=10)
-
-        if self.scenario:
-            scenario_text = "📂 Case Details:\n" + "\n".join([f"   - {k.capitalize()}: {v}" for k, v in self.scenario.items()])
-            tk.Label(self.master, text=scenario_text, justify="left").pack(pady=5)
-
-            evidence_text = "🧾 Evidence:\n" + "\n".join([f"   • {e}" for e in self.evidence])
-            tk.Label(self.master, text=evidence_text, justify="left").pack(pady=5)
-
-        question_text = f"❓ Question:\n   {self.current_question}"
-        self.question_label = tk.Label(self.master, text=question_text, justify="left", wraplength=650)
-        self.question_label.pack(pady=10)
-
-        self.answer_entry = tk.Entry(self.master, width=80)
-        self.answer_entry.pack()
-
-        # Timer labels
-        self.total_timer_label = tk.Label(self.master, text="Total Time: 15:00", font=("Helvetica", 12, "bold"))
-        self.total_timer_label.pack(pady=5)
         
-        self.response_timer_label = tk.Label(self.master, text="Response Time: 60s", font=("Helvetica", 12))
-        self.response_timer_label.pack(pady=5)
-
-        submit_btn = tk.Button(self.master, text="Submit Answer", command=self.submit_answer)
-        submit_btn.pack(pady=10)
-
+        # Main container with responsive grid
+        main_frame = self.create_gradient_frame(self.master)
+        main_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        main_frame.grid_rowconfigure(1, weight=1)
+        main_frame.grid_columnconfigure(0, weight=1)
+        
+        # Header with title and timers
+        header_frame = tk.Frame(main_frame, bg=self.colors['bg_medium'], height=80)
+        header_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+        header_frame.grid_columnconfigure(1, weight=1)
+        header_frame.grid_columnconfigure(3, weight=1)
+        
+        # Title
+        title_label = tk.Label(header_frame, text="🚨 INTERROGATION ROOM", 
+                              font=("Segoe UI", 18, "bold"), 
+                              bg=self.colors['bg_medium'], 
+                              fg=self.colors['accent'])
+        title_label.grid(row=0, column=0, columnspan=2, sticky="w", padx=10, pady=5)
+        
+        # Total timer
+        self.total_timer_label = tk.Label(header_frame, text="⏰ Total: 15:00", 
+                                         font=("Segoe UI", 14, "bold"), 
+                                         bg=self.colors['bg_medium'], 
+                                         fg=self.colors['success'])
+        self.total_timer_label.grid(row=0, column=2, padx=10, pady=5)
+        
+        # Response timer
+        self.response_timer_label = tk.Label(header_frame, text="⚡ Response: 60s", 
+                                            font=("Segoe UI", 14), 
+                                            bg=self.colors['bg_medium'], 
+                                            fg=self.colors['warning'])
+        self.response_timer_label.grid(row=0, column=3, padx=10, pady=5)
+        
+        # Content area
+        content_frame = tk.Frame(main_frame, bg=self.colors['bg_medium'])
+        content_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+        content_frame.grid_rowconfigure(2, weight=1)
+        content_frame.grid_columnconfigure(0, weight=1)
+        
+        # Scenario and evidence section
+        if self.scenario:
+            info_frame = tk.Frame(content_frame, bg=self.colors['bg_light'], relief="flat", bd=1)
+            info_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+            info_frame.grid_columnconfigure(0, weight=1)
+            
+            # Scenario details
+            scenario_text = "📂 CASE DETAILS"
+            scenario_label = tk.Label(info_frame, text=scenario_text, 
+                                     font=("Segoe UI", 12, "bold"), 
+                                     bg=self.colors['bg_light'], 
+                                     fg=self.colors['accent'])
+            scenario_label.grid(row=0, column=0, sticky="w", padx=10, pady=5)
+            
+            details_text = "\n".join([f"   • {k.capitalize()}: {v}" for k, v in self.scenario.items()])
+            details_label = tk.Label(info_frame, text=details_text, 
+                                    font=("Segoe UI", 10), 
+                                    bg=self.colors['bg_light'], 
+                                    fg=self.colors['text_light'],
+                                    justify="left")
+            details_label.grid(row=1, column=0, sticky="w", padx=20, pady=5)
+            
+            # Evidence
+            evidence_text = "🧾 EVIDENCE AGAINST YOU"
+            evidence_title = tk.Label(info_frame, text=evidence_text, 
+                                     font=("Segoe UI", 12, "bold"), 
+                                     bg=self.colors['bg_light'], 
+                                     fg=self.colors['danger'])
+            evidence_title.grid(row=2, column=0, sticky="w", padx=10, pady=(15, 5))
+            
+            evidence_list = "\n".join([f"   • {e}" for e in self.evidence])
+            evidence_label = tk.Label(info_frame, text=evidence_list, 
+                                     font=("Segoe UI", 10), 
+                                     bg=self.colors['bg_light'], 
+                                     fg=self.colors['text_gray'],
+                                     justify="left")
+            evidence_label.grid(row=3, column=0, sticky="w", padx=20, pady=5)
+        
+        # Question section
+        question_frame = tk.Frame(content_frame, bg=self.colors['bg_light'], relief="flat", bd=1)
+        question_frame.grid(row=1, column=0, sticky="ew", pady=10)
+        question_frame.grid_columnconfigure(0, weight=1)
+        
+        question_title = tk.Label(question_frame, text="❓ DETECTIVE'S QUESTION", 
+                                 font=("Segoe UI", 12, "bold"), 
+                                 bg=self.colors['bg_light'], 
+                                 fg=self.colors['accent'])
+        question_title.grid(row=0, column=0, sticky="w", padx=10, pady=5)
+        
+        self.question_label = tk.Label(question_frame, text=self.current_question, 
+                                      font=("Segoe UI", 11), 
+                                      bg=self.colors['bg_light'], 
+                                      fg=self.colors['text_light'],
+                                      justify="left", wraplength=800)
+        self.question_label.grid(row=1, column=0, sticky="w", padx=20, pady=10)
+        
+        # Answer section
+        answer_frame = tk.Frame(content_frame, bg=self.colors['bg_light'], relief="flat", bd=1)
+        answer_frame.grid(row=2, column=0, sticky="ew", pady=10)
+        answer_frame.grid_columnconfigure(0, weight=1)
+        
+        answer_title = tk.Label(answer_frame, text="💬 YOUR RESPONSE", 
+                               font=("Segoe UI", 12, "bold"), 
+                               bg=self.colors['bg_light'], 
+                               fg=self.colors['success'])
+        answer_title.grid(row=0, column=0, sticky="w", padx=10, pady=5)
+        
+        self.answer_entry = tk.Entry(answer_frame, font=("Segoe UI", 12), 
+                                    bg=self.colors['bg_dark'], fg=self.colors['text_light'],
+                                    insertbackground=self.colors['text_light'],
+                                    relief="flat", bd=5)
+        self.answer_entry.grid(row=1, column=0, sticky="ew", padx=20, pady=10)
+        
+        # Submit button
+        submit_btn = ModernButton(answer_frame, text="🚀 SUBMIT ANSWER", 
+                                 command=self.submit_answer,
+                                 bg=self.colors['accent'], fg=self.colors['text_light'],
+                                 font=("Segoe UI", 12, "bold"),
+                                 width=20, height=2)
+        submit_btn.grid(row=2, column=0, pady=15)
+        
         # Only show waiting message for first question
         if self.is_first_question:
-            self.response_timer_label.config(text="Response Time: Waiting for first answer...")
+            self.response_timer_label.config(text="⚡ Response: Waiting for first answer...")
 
     def start_response_timer(self):
         if self.response_timer_running:
@@ -140,7 +375,8 @@ class AlibiGame:
                 return
                 
             if self.response_time_left > 0:
-                self.response_timer_label.config(text=f"Response Time: {self.response_time_left}s")
+                color = self.colors['success'] if self.response_time_left > 30 else self.colors['warning'] if self.response_time_left > 10 else self.colors['danger']
+                self.response_timer_label.config(text=f"⚡ Response: {self.response_time_left}s", fg=color)
                 self.response_time_left -= 1
                 self.master.after(1000, update_response_timer)
             else:
@@ -161,7 +397,8 @@ class AlibiGame:
             if self.total_time_left > 0:
                 minutes = self.total_time_left // 60
                 seconds = self.total_time_left % 60
-                self.total_timer_label.config(text=f"Total Time: {minutes:02d}:{seconds:02d}")
+                color = self.colors['success'] if self.total_time_left > 300 else self.colors['warning'] if self.total_time_left > 60 else self.colors['danger']
+                self.total_timer_label.config(text=f"⏰ Total: {minutes:02d}:{seconds:02d}", fg=color)
                 self.total_time_left -= 1
                 self.master.after(1000, update_total_timer)
             else:
@@ -246,27 +483,60 @@ class AlibiGame:
         
         self.clear_frame()
         
+        # Main result container
+        result_frame = self.create_gradient_frame(self.master, padx=60, pady=60)
+        result_frame.grid(row=0, column=0, sticky="nsew", padx=40, pady=40)
+        result_frame.grid_rowconfigure(1, weight=1)
+        result_frame.grid_columnconfigure(0, weight=1)
+        
         if ai_caught:
             title = "🚨 CAUGHT BY AI!"
             message = "The AI detective has caught you in a lie!\n\nYou've been exposed and arrested."
-            color = "red"
+            color = self.colors['danger']
+            icon = "🚨"
         elif player_won:
             title = "✅ INTERROGATION SURVIVED!"
             message = "Congratulations! You've survived the full 15-minute interrogation.\n\nYou walk free!"
-            color = "green"
+            color = self.colors['success']
+            icon = "🏆"
         else:
             title = "⏰ TIME'S UP!"
             message = "You ran out of time to answer.\n\nThe interrogation continues..."
-            color = "orange"
+            color = self.colors['warning']
+            icon = "⏰"
         
-        result_label = tk.Label(self.master, text=title, font=("Helvetica", 16, "bold"), fg=color)
-        result_label.pack(pady=20)
+        # Result icon and title
+        icon_label = tk.Label(result_frame, text=icon, font=("Segoe UI", 48), 
+                             bg=self.colors['bg_medium'], fg=color)
+        icon_label.grid(row=0, column=0, pady=20)
         
-        message_label = tk.Label(self.master, text=message, font=("Helvetica", 12), wraplength=500)
-        message_label.pack(pady=10)
+        result_label = tk.Label(result_frame, text=title, 
+                               font=("Segoe UI", 24, "bold"), 
+                               bg=self.colors['bg_medium'], fg=color)
+        result_label.grid(row=1, column=0, pady=10)
         
-        tk.Button(self.master, text="Play Again", command=self.restart_game).pack(pady=10)
-        tk.Button(self.master, text="Exit", command=self.master.destroy).pack(pady=5)
+        message_label = tk.Label(result_frame, text=message, 
+                                font=("Segoe UI", 14), 
+                                bg=self.colors['bg_medium'], 
+                                fg=self.colors['text_light'],
+                                wraplength=500, justify="center")
+        message_label.grid(row=2, column=0, pady=20)
+        
+        # Buttons
+        button_frame = tk.Frame(result_frame, bg=self.colors['bg_medium'])
+        button_frame.grid(row=3, column=0, pady=20)
+        
+        play_again_btn = ModernButton(button_frame, text="🔄 PLAY AGAIN", 
+                                     command=self.restart_game,
+                                     bg=self.colors['accent'], fg=self.colors['text_light'],
+                                     font=("Segoe UI", 12, "bold"))
+        play_again_btn.pack(side="left", padx=10)
+        
+        exit_btn = ModernButton(button_frame, text="🚪 EXIT", 
+                               command=self.master.destroy,
+                               bg=self.colors['bg_light'], fg=self.colors['text_light'],
+                               font=("Segoe UI", 12, "bold"))
+        exit_btn.pack(side="left", padx=10)
 
     def restart_game(self):
         self.name = ""
@@ -292,4 +562,4 @@ class AlibiGame:
 
 root = tk.Tk()
 game = AlibiGame(root)
-root.mainloop() 
+root.mainloop()
